@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+
+PATH="$HOME/.local/bin:$HOME/bin:$PATH"
+
+if ! command -v prose-hygiene >/dev/null 2>&1; then
+  echo "[prose-hygiene] WARNING: prose-hygiene not found, skipping hook" >&2
+  exit 0
+fi
+
+tmp_dir="$(mktemp -d 2>/dev/null || mktemp -d -t prose-hygiene-hook)"
+cleanup() {
+  rm -rf "$tmp_dir"
+}
+trap cleanup EXIT
+
+staged_files=()
+while IFS= read -r line; do
+  staged_files+=("$line")
+done < <(git diff --cached --name-only --diff-filter=ACM 2>/dev/null || true)
+
+fixed_files=0
+total_matches=0
+file_index=0
+declare -a summary_lines=()
+declare -a skipped_unstaged=()
+
+for file_path in "${staged_files[@]}"; do
+  case "${file_path,,}" in
+    *.md|*.mdx|*.txt|*.rst|*.yaml|*.yml|*.toml|*.json) ;;
+    *) continue ;;
+  esac
+
+  extension=".${file_path##*.}"
+  tmp_in="$tmp_dir/input_$file_index$extension"
+  tmp_out="$tmp_dir/output_$file_index$extension"
+  report_file="$tmp_dir/report_$file_index.json"
+  file_index=$((file_index + 1))
+
+  git show ":$file_path" >"$tmp_in" 2>/dev/null || continue
+
+  if ! prose-hygiene "$tmp_in" "$tmp_out" --json >"$report_file" 2>/dev/null; then
+    continue
+  fi
+
+  parsed="$(
+    python3 - "$report_file" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+try:
+    report = json.loads(Path(sys.argv[1]).read_text())
+    summary = report.get("summary", {})
+    fixed = int(summary.get("fixed", 0))
+    matches = int(summary.get("matches", 0))
+    print(f"{fixed}\t{matches}")
+except Exception:
+    print("0\t0")
+PY
+  )"
+
+  fixed_count="${parsed%%$'\t'*}"
+  match_count="${parsed#*$'\t'}"
+
+  if [ "$fixed_count" -gt 0 ]; then
+    if ! git diff --quiet -- "$file_path" 2>/dev/null; then
+      skipped_unstaged+=("$file_path")
+      continue
+    fi
+
+    cp -- "$tmp_out" "$file_path" 2>/dev/null || continue
+    git add -- "$file_path" >/dev/null 2>&1 || true
+    fixed_files=$((fixed_files + 1))
+    total_matches=$((total_matches + match_count))
+    summary_lines+=("$(printf '  %-24s %s matches' "$file_path" "$match_count")")
+  fi
+done
+
+if [ "$fixed_files" -gt 0 ]; then
+  {
+    printf '[prose-hygiene] fixed %s file(s), %s em dash(es) replaced\n' "$fixed_files" "$total_matches"
+    for line in "${summary_lines[@]}"; do
+      printf '%s\n' "$line"
+    done
+  } >&2
+fi
+
+if [ "${#skipped_unstaged[@]}" -gt 0 ]; then
+  {
+    printf '[prose-hygiene] skipped %s file(s) with unstaged working-tree changes to avoid overwriting them\n' "${#skipped_unstaged[@]}"
+    for file_path in "${skipped_unstaged[@]}"; do
+      printf '  %s\n' "$file_path"
+    done
+  } >&2
+fi
+
+exit 0

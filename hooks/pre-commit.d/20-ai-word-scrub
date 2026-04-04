@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+
+if ! command -v grep >/dev/null 2>&1; then
+  exit 0
+fi
+
+tmp_dir="$(mktemp -d 2>/dev/null || mktemp -d -t prose-hygiene-ai-word-scrub)"
+cleanup() {
+  rm -rf "$tmp_dir"
+}
+trap cleanup EXIT
+
+staged_files=()
+while IFS= read -r line; do
+  staged_files+=("$line")
+done < <(git diff --cached --name-only --diff-filter=ACM 2>/dev/null || true)
+
+terms=(
+  "delve into"
+  "delve"
+  "as an AI"
+  "I cannot assist"
+  "I cannot help"
+  "it's worth noting"
+  "it is worth noting"
+  "it's important to note"
+  "it is important to note"
+  "in conclusion"
+  "to summarize"
+  "cutting-edge"
+  "game-changing"
+  "revolutionize"
+  "groundbreaking"
+)
+
+matched_file_count=0
+file_index=0
+declare -a report_files=()
+
+for file_path in "${staged_files[@]}"; do
+  case "${file_path,,}" in
+    *.md|*.mdx|*.txt|*.rst) ;;
+    *) continue ;;
+  esac
+
+  staged_copy="$tmp_dir/staged_$file_index"
+  match_file="$tmp_dir/matches_$file_index"
+  file_index=$((file_index + 1))
+
+  if ! git show ":$file_path" >"$staged_copy" 2>/dev/null; then
+    continue
+  fi
+
+  for term in "${terms[@]}"; do
+    while IFS=: read -r line_no _; do
+      [ -n "$line_no" ] || continue
+      printf '%s\t%s\n' "$line_no" "$term" >>"$match_file"
+    done < <(grep -in -F -- "$term" "$staged_copy" 2>/dev/null || true)
+  done
+
+  if [ -s "$match_file" ]; then
+    matched_file_count=$((matched_file_count + 1))
+    report_files+=("$file_path"$'\t'"$match_file")
+  fi
+done
+
+if [ "$matched_file_count" -gt 0 ]; then
+  {
+    printf '[ai-word-scrub] advisory warnings in %s file(s):\n' "$matched_file_count"
+    for report_entry in "${report_files[@]}"; do
+      file_path="${report_entry%%$'\t'*}"
+      match_file="${report_entry#*$'\t'}"
+      while IFS=$'\t' read -r line_no term; do
+        printf '  %s:%s  "%s"\n' "$file_path" "$line_no" "$term"
+      done < <(sort -n -k1,1 "$match_file")
+    done
+  } >&2
+fi
+
+exit 0

@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Global pre-commit dispatcher
+# Runs all executable scripts in pre-commit.d/ in lexicographic order.
+# Always exits 0 because hooks in this setup are advisory and auto-fixing only.
+
+HOOK_DIR="$(dirname "$(realpath "$0")")/pre-commit.d"
+
+if [[ ! -d "$HOOK_DIR" ]]; then
+  exit 0
+fi
+
+for hook in "$HOOK_DIR"/*; do
+  [[ -x "$hook" ]] || continue
+  "$hook" "$@"
+done
+
+exit 0
