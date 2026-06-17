@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/prose-hygiene-banner.svg" alt="prose-hygiene workflow banner showing AI draft, deterministic rewrite, and repo-ready docs" width="100%">
+</p>
+
 # prose-hygiene
 
 Deterministic cleanup for AI-assisted documentation workflows.

@@ -1,0 +1,75 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">prose-hygiene banner preview</title>
+  <desc id="desc">A three-step workflow showing AI draft, deterministic rewrite, and repo-ready docs.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1600" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF8EF"/>
+      <stop offset="1" stop-color="#F6EBDD"/>
+    </linearGradient>
+    <filter id="shadow" x="0" y="0" width="1600" height="900" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="24" flood-color="#5A3322" flood-opacity="0.12"/>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="900" rx="36" fill="url(#bg)"/>
+  <rect x="48" y="48" width="1504" height="804" rx="28" fill="#FFFCF7" stroke="#E7D7C6"/>
+
+  <text x="108" y="156" fill="#2C241F" font-family="Georgia, 'Times New Roman', serif" font-size="62" font-weight="700">prose-hygiene</text>
+  <text x="108" y="205" fill="#6F5B50" font-family="Verdana, Arial, sans-serif" font-size="26">Deterministic cleanup for AI-written docs</text>
+
+  <g filter="url(#shadow)">
+    <rect x="96" y="264" width="404" height="462" rx="26" fill="#FFF7EF" stroke="#E8D4C0"/>
+    <rect x="548" y="264" width="504" height="462" rx="26" fill="#FFFBF6" stroke="#DDD4C8"/>
+    <rect x="1100" y="264" width="404" height="462" rx="26" fill="#F7FBF6" stroke="#CFE0CF"/>
+  </g>
+
+  <text x="128" y="324" fill="#9C4C2C" font-family="Verdana, Arial, sans-serif" font-size="22" font-weight="700" letter-spacing="1.5">AI DRAFT</text>
+  <text x="580" y="324" fill="#6E574B" font-family="Verdana, Arial, sans-serif" font-size="22" font-weight="700" letter-spacing="1.5">DETERMINISTIC REWRITE</text>
+  <text x="1132" y="324" fill="#3E6E47" font-family="Verdana, Arial, sans-serif" font-size="22" font-weight="700" letter-spacing="1.5">REPO-READY DOCS</text>
+
+  <text x="128" y="362" fill="#7F6B61" font-family="Verdana, Arial, sans-serif" font-size="20">messy punctuation and drift</text>
+  <text x="580" y="362" fill="#7F6B61" font-family="Verdana, Arial, sans-serif" font-size="20">fast local cleanup with fixed rules</text>
+  <text x="1132" y="362" fill="#7F6B61" font-family="Verdana, Arial, sans-serif" font-size="20">clean, consistent markdown</text>
+
+  <g>
+    <rect x="128" y="402" width="340" height="242" rx="18" fill="#2C241F"/>
+    <text x="152" y="442" fill="#F4ECE3" font-family="'Courier New', monospace" font-size="24"># Setup Notes</text>
+    <text x="152" y="490" fill="#F4ECE3" font-family="'Courier New', monospace" font-size="24">Responses Sheet — Column</text>
+    <text x="152" y="538" fill="#F4ECE3" font-family="'Courier New', monospace" font-size="24">Range 1–40 not allowed.</text>
+    <text x="152" y="586" fill="#F4ECE3" font-family="'Courier New', monospace" font-size="24">Bad use -- like this.</text>
+    <circle cx="436" cy="490" r="7" fill="#D76C4E"/>
+    <circle cx="363" cy="538" r="7" fill="#D76C4E"/>
+    <circle cx="278" cy="586" r="7" fill="#D76C4E"/>
+  </g>
+
+  <g>
+    <rect x="606" y="402" width="388" height="242" rx="18" fill="#2C241F"/>
+    <circle cx="638" cy="432" r="7" fill="#E57373"/>
+    <circle cx="662" cy="432" r="7" fill="#F2C14E"/>
+    <circle cx="686" cy="432" r="7" fill="#71C38A"/>
+    <text x="726" y="438" fill="#C7B8A8" font-family="'Courier New', monospace" font-size="20">prose-hygiene --json</text>
+    <text x="638" y="500" fill="#71C38A" font-family="'Courier New', monospace" font-size="24">fixed: 3</text>
+    <text x="638" y="546" fill="#F4ECE3" font-family="'Courier New', monospace" font-size="24">strategies:</text>
+    <text x="638" y="590" fill="#F4ECE3" font-family="'Courier New', monospace" font-size="24">comma=2  colon=1</text>
+    <path d="M927 517C951 500 964 470 964 438" stroke="#C97C5D" stroke-width="4" stroke-linecap="round"/>
+    <path d="M966 437L953 445L950 430" stroke="#C97C5D" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <g>
+    <rect x="1132" y="402" width="340" height="242" rx="18" fill="#213126"/>
+    <text x="1156" y="442" fill="#EAF3EA" font-family="'Courier New', monospace" font-size="24"># Setup Notes</text>
+    <text x="1156" y="490" fill="#EAF3EA" font-family="'Courier New', monospace" font-size="24">Responses Sheet: Column</text>
+    <text x="1156" y="538" fill="#EAF3EA" font-family="'Courier New', monospace" font-size="24">Range 1-40 not allowed.</text>
+    <text x="1156" y="586" fill="#EAF3EA" font-family="'Courier New', monospace" font-size="24">Bad use, like this.</text>
+    <path d="M1428 437L1438 447L1458 427" stroke="#71C38A" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M1428 485L1438 495L1458 475" stroke="#71C38A" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M1428 533L1438 543L1458 523" stroke="#71C38A" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M1428 581L1438 591L1458 571" stroke="#71C38A" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <path d="M500 494H548" stroke="#C97C5D" stroke-width="6" stroke-linecap="round"/>
+  <path d="M1036 494H1084" stroke="#7FA287" stroke-width="6" stroke-linecap="round"/>
+  <path d="M531 478L548 494L531 510" stroke="#C97C5D" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M1067 478L1084 494L1067 510" stroke="#7FA287" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+
+</svg>
