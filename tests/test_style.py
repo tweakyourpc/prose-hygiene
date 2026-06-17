@@ -13,8 +13,33 @@ def test_list_descriptor_becomes_colon():
     assert '- Inventory tab: paste from SolarWinds\n' == result.text
 
 
+def test_list_transition_becomes_comma():
+    text = '- It works — but only after restart.\n'
+    result = rewrite_document_text(text)
+    assert '- It works, but only after restart.\n' == result.text
+
+
 def test_transition_becomes_comma():
     text = 'It works — but only after restart.\n'
+    result = rewrite_document_text(text)
+    assert 'It works, but only after restart.\n' == result.text
+
+
+def test_en_dash_transition_becomes_comma():
+    text = 'It works – but only after restart.\n'
+    result = rewrite_document_text(text)
+    assert 'It works, but only after restart.\n' == result.text
+
+
+def test_en_dash_numeric_range_becomes_hyphen():
+    text = 'Range 1–40 not allowed.\n'
+    result = rewrite_document_text(text)
+    assert 'Range 1-40 not allowed.\n' == result.text
+    assert result.strategies == {'hyphen': 1}
+
+
+def test_spaced_double_hyphen_becomes_comma():
+    text = 'It works -- but only after restart.\n'
     result = rewrite_document_text(text)
     assert 'It works, but only after restart.\n' == result.text
 
@@ -47,6 +72,30 @@ def test_heading_style_requires_title_case_or_short_label():
 def test_heading_comma_opt_in_does_not_change_list_items():
     text = '- Responses Sheet, Column Reference\n'
     result = rewrite_document_text(text, normalize_heading_commas=True)
+    assert result.text == text
+
+
+def test_inline_backtick_em_dash_is_left_unchanged():
+    text = 'Use `—` in docs when discussing the rule.\n'
+    result = rewrite_document_text(text)
+    assert result.text == text
+
+
+def test_inline_backtick_em_dash_can_coexist_with_rewritten_prose():
+    text = 'Use `—` in docs — but not in prose.\n'
+    result = rewrite_document_text(text)
+    assert result.text == 'Use `—` in docs, but not in prose.\n'
+
+
+def test_frontmatter_is_left_unchanged():
+    text = '---\ndescription: this is — fine in metadata\n---\n\nBody text.\n'
+    result = rewrite_document_text(text)
+    assert result.text == text
+
+
+def test_html_comment_is_left_unchanged():
+    text = '<!-- keep — this comment -->\nBody text.\n'
+    result = rewrite_document_text(text)
     assert result.text == text
 
 

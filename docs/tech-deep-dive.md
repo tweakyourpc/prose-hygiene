@@ -2,7 +2,7 @@
 
 ## Overview
 
-`prose-hygiene` is a deterministic cleanup layer for AI-assisted documentation workflows. It is intentionally narrow: instead of trying to rewrite prose broadly, it focuses on a small set of high-signal artifacts that can be handled with explainable heuristics.
+`prose-hygiene` is a deterministic cleanup layer for AI-assisted documentation workflows. It is intentionally narrow: instead of trying to rewrite prose broadly, it focuses on a small set of high-signal punctuation artifacts that can be handled with explainable heuristics.
 
 ## Core architecture
 
@@ -15,7 +15,16 @@ That separation keeps the highest-risk logic in one place while allowing multipl
 
 ## Rewrite model
 
-The rewrite engine is not doing naive global replacement. It tries to classify common em dash uses into a few narrow cases:
+The rewrite engine is not doing naive global replacement. It first normalizes a small family of punctuation forms into a predictable internal model, then classifies common usages into narrow cases.
+
+Today that includes:
+- em dash separator usage
+- en dash separator usage where it behaves like prose punctuation
+- en dash numeric ranges that should become ASCII hyphens
+- space-flanked `--`
+- optional heading-style comma normalization
+
+The separator-classification layer tries to map lines into a few explainable cases:
 - heading-style label and detail pairs
 - list-item descriptors
 - parenthetical insertions
@@ -23,6 +32,16 @@ The rewrite engine is not doing naive global replacement. It tries to classify c
 - discourse transitions that should become commas
 
 When a line falls outside those cases, the behavior stays conservative and predictable.
+
+## Structured-region safety
+
+The engine avoids rewriting regions that are likely to be structured syntax rather than prose:
+- fenced code blocks
+- inline backticks
+- YAML frontmatter
+- HTML comments
+
+That boundary matters because a hygiene tool should improve prose without damaging examples, metadata, or markup.
 
 ## Artifact handling
 
@@ -47,6 +66,6 @@ The auto-fix hook now skips files that have unstaged working-tree changes so it 
 
 ## Why this approach is interesting
 
-The interesting claim is not that em dashes are special. It is that AI-generated documentation drift often shows up in repetitive, narrow patterns that are a good fit for deterministic local cleanup.
+The important claim is not that any one punctuation mark is special. It is that AI-generated documentation drift often shows up in repetitive, narrow patterns that are a good fit for deterministic local cleanup.
 
 That makes the project useful both as a tool and as a design argument for tighter integration between coding agents and repository-native hygiene systems.

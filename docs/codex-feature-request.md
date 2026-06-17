@@ -16,7 +16,7 @@ That leaves a gap:
 - downstream deterministic cleanup or advisory feedback through Git hooks
 
 The current proof of concept includes:
-- em dash normalization
+- deterministic dash normalization across em dashes, en dashes, and spaced `--`
 - optional heading-comma normalization
 - advisory AI phrase warnings
 - structured JSON reports for automation

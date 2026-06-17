@@ -20,7 +20,7 @@ def normalize_extension(value: str) -> str:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Rewrite U+2014 in document-style artifacts with punctuation heuristics."
+        description="Rewrite em dashes, en dashes, and space-flanked double hyphens in document-style artifacts with punctuation heuristics."
     )
     parser.add_argument("input_path", help="Input file, directory, or zip archive")
     parser.add_argument("output_path", help="Output file, directory, or zip archive")

@@ -1,4 +1,4 @@
-"""Deterministic style-aware punctuation rewriting for U+2014."""
+"""Deterministic style-aware punctuation rewriting for prose hygiene."""
 
 from __future__ import annotations
 
@@ -8,8 +8,12 @@ from dataclasses import dataclass, field
 
 
 EM_DASH = "\u2014"
+EN_DASH = "\u2013"
+INLINE_CODE_RE = re.compile(r"``[^\n]*?``|`[^`\n]*`")
 LIST_MARKER_RE = re.compile(r"^(?P<lead>\s*(?:[-*+]\s+|\d+\.\s+))(?P<body>.+)$")
 SERIAL_SPLIT_RE = re.compile(r"\s*—\s*")
+GENERIC_DASH_RE = re.compile(r"\s+--\s+|\s*[—–]\s*")
+NUMERIC_EN_DASH_RE = re.compile(r"(?<=\d)–(?=\d)")
 TRANSITION_PREFIXES = (
     "and",
     "at least",
@@ -79,6 +83,23 @@ class RewriteResult:
     strategies: dict[str, int] = field(default_factory=dict)
 
 
+def _mask_inline_code(line: str) -> tuple[str, dict[str, str]]:
+    placeholders: dict[str, str] = {}
+
+    def replace(match: re.Match[str]) -> str:
+        token = f"\uFFF0{len(placeholders)}\uFFF1"
+        placeholders[token] = match.group(0)
+        return token
+
+    return INLINE_CODE_RE.sub(replace, line), placeholders
+
+
+def _restore_inline_code(line: str, placeholders: dict[str, str]) -> str:
+    for token, original in placeholders.items():
+        line = line.replace(token, original)
+    return line
+
+
 def _word_count(text: str) -> int:
     return len(text.split())
 
@@ -96,7 +117,9 @@ def _looks_descriptor(label: str) -> bool:
     if _word_count(label) > 6:
         return False
     lowered = f" {label.lower()} "
-    return not any(token in lowered for token in (" is ", " are ", " was ", " were ", " has ", " have "))
+    return not any(
+        token in lowered for token in (" is ", " are ", " was ", " were ", " has ", " have ")
+    )
 
 
 def _should_use_comma(right: str) -> bool:
@@ -163,6 +186,9 @@ def _rewrite_single_dash(line: str) -> tuple[str, Counter[str]]:
         if body.count(EM_DASH) == 1:
             label, detail = [part.strip() for part in body.split(EM_DASH, 1)]
             if _looks_descriptor(label):
+                if _should_use_comma(detail):
+                    strategies["comma"] += 1
+                    return f"{list_match.group('lead')}{label}, {detail}", strategies
                 strategies["colon"] += 1
                 return f"{list_match.group('lead')}{label}: {detail}", strategies
 
@@ -204,7 +230,7 @@ def _rewrite_serial_sequence(line: str) -> tuple[str | None, Counter[str]]:
 
 
 def _normalize_heading_comma(line: str) -> tuple[str | None, Counter[str]]:
-    if EM_DASH in line or line.count(",") != 1:
+    if GENERIC_DASH_RE.search(line) or line.count(",") != 1:
         return None, Counter()
     left, right = [part.strip() for part in line.split(",", 1)]
     if not left or not right:
@@ -216,28 +242,46 @@ def _normalize_heading_comma(line: str) -> tuple[str | None, Counter[str]]:
 
 def rewrite_line(line: str, normalize_heading_commas: bool = False) -> tuple[str, int, dict[str, int]]:
     """Rewrite one documentation line."""
-    count = line.count(EM_DASH)
-    if count == 0:
+    masked_line, placeholders = _mask_inline_code(line)
+
+    range_count = len(NUMERIC_EN_DASH_RE.findall(masked_line))
+    range_normalized = NUMERIC_EN_DASH_RE.sub("-", masked_line)
+
+    separator_count = len(GENERIC_DASH_RE.findall(range_normalized))
+    canonical_line = GENERIC_DASH_RE.sub(EM_DASH, range_normalized)
+
+    total_count = range_count + separator_count
+    base_strategies: Counter[str] = Counter()
+    if range_count:
+        base_strategies["hyphen"] += range_count
+
+    if separator_count == 0:
+        if range_count:
+            return _restore_inline_code(range_normalized, placeholders), total_count, dict(base_strategies)
         if normalize_heading_commas:
-            normalized, strategies = _normalize_heading_comma(line)
+            normalized, strategies = _normalize_heading_comma(masked_line)
             if normalized is not None:
-                return normalized, 1, dict(strategies)
+                return _restore_inline_code(normalized, placeholders), 1, dict(strategies)
         return line, 0, {}
 
-    parenthetical, strategies = _rewrite_parenthetical(line)
+    parenthetical, strategies = _rewrite_parenthetical(canonical_line)
     if parenthetical is not None:
-        return parenthetical, count, dict(strategies)
+        strategies.update(base_strategies)
+        return _restore_inline_code(parenthetical, placeholders), total_count, dict(strategies)
 
-    serial, strategies = _rewrite_serial_sequence(line)
+    serial, strategies = _rewrite_serial_sequence(canonical_line)
     if serial is not None:
-        return serial, count, dict(strategies)
+        strategies.update(base_strategies)
+        return _restore_inline_code(serial, placeholders), total_count, dict(strategies)
 
-    if count == 1:
-        rewritten, strategies = _rewrite_single_dash(line)
-        return rewritten, count, dict(strategies)
+    if canonical_line.count(EM_DASH) == 1:
+        rewritten, strategies = _rewrite_single_dash(canonical_line)
+        strategies.update(base_strategies)
+        return _restore_inline_code(rewritten, placeholders), total_count, dict(strategies)
 
-    rewritten = line.replace(EM_DASH, ",")
-    return rewritten, count, {"comma": count}
+    rewritten = canonical_line.replace(EM_DASH, ",")
+    base_strategies["comma"] += canonical_line.count(EM_DASH)
+    return _restore_inline_code(rewritten, placeholders), total_count, dict(base_strategies)
 
 
 def rewrite_document_text(text: str, normalize_heading_commas: bool = False) -> RewriteResult:
@@ -246,9 +290,35 @@ def rewrite_document_text(text: str, normalize_heading_commas: bool = False) -> 
     strategies: Counter[str] = Counter()
     output_lines: list[str] = []
     in_fence = False
+    in_frontmatter = False
+    in_html_comment = False
 
-    for line in text.splitlines():
+    for index, line in enumerate(text.splitlines()):
         stripped = line.strip()
+
+        if index == 0 and stripped == "---":
+            in_frontmatter = True
+            output_lines.append(line)
+            continue
+
+        if in_frontmatter:
+            output_lines.append(line)
+            if stripped == "---":
+                in_frontmatter = False
+            continue
+
+        if in_html_comment:
+            output_lines.append(line)
+            if "-->" in line:
+                in_html_comment = False
+            continue
+
+        if stripped.startswith("<!--"):
+            output_lines.append(line)
+            if "-->" not in line:
+                in_html_comment = True
+            continue
+
         if stripped.startswith("```") or stripped.startswith("~~~"):
             in_fence = not in_fence
             output_lines.append(line)
@@ -258,14 +328,16 @@ def rewrite_document_text(text: str, normalize_heading_commas: bool = False) -> 
             output_lines.append(line)
             continue
 
-        rewritten, count, line_strategies = rewrite_line(line, normalize_heading_commas=normalize_heading_commas)
-        output_lines.append(rewritten)
+        rewritten, count, line_strategies = rewrite_line(
+            line, normalize_heading_commas=normalize_heading_commas
+        )
         total += count
         strategies.update(line_strategies)
+        output_lines.append(rewritten)
 
-    suffix = "\n" if text.endswith("\n") else ""
+    trailing_newline = "\n" if text.endswith("\n") else ""
     return RewriteResult(
-        text="\n".join(output_lines) + suffix,
+        text="\n".join(output_lines) + trailing_newline,
         count=total,
         strategies=dict(strategies),
     )

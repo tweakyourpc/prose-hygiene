@@ -3,7 +3,8 @@
 AI coding tools can generate excellent structure and useful content, but they also leave recognizable stylistic fingerprints. This project treats those fingerprints as a hygiene problem that can be improved deterministically before documentation lands in a repo.
 
 Current examples include:
-- overuse of em dashes
+- overuse of em dashes and en dashes as prose separators
+- space-flanked `--` that reads like a typewriter-era fallback
 - stock discourse markers
 - polished but repetitive phrasing
 

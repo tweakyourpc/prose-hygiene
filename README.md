@@ -1,22 +1,47 @@
 # prose-hygiene
 
-Deterministic prose cleanup for AI-assisted documentation workflows.
+Deterministic cleanup for AI-assisted documentation workflows.
 
-`prose-hygiene` started as an em dash scrubber and evolved into a broader proof of concept for **AI documentation hygiene**: a local, explainable cleanup layer that normalizes common stylistic artifacts before generated docs land in a repository.
+`prose-hygiene` is a local rewrite layer for docs that are structurally useful but stylistically off. Its job is narrow on purpose: take common high-signal punctuation artifacts from AI-written documentation, normalize them predictably, and leave the rest of the prose alone.
+
+## Intended use
+
+Use `prose-hygiene` when:
+- AI tools wrote the draft and the content is mostly right
+- you want automatic cleanup before docs land in the repo
+- you want a fast, explainable rewrite pass instead of another model pass
+- you want hooks or CI to enforce repository prose norms consistently
+
+Do not use it as a general-purpose prose improver. It is a deterministic hygiene tool, not an editorial assistant.
+
+## What it rewrites
+
+Today the rewrite engine normalizes a small set of punctuation artifacts with context-aware heuristics:
+- U+2014 em dashes
+- U+2013 en dashes in numeric ranges and prose-like separator usage
+- space-flanked `--`
+- optional heading-style comma normalization like `Foo, Bar` -> `Foo: Bar`
+
+It preserves structured regions that should not be touched:
+- fenced code blocks
+- inline backticks
+- YAML frontmatter
+- HTML comments
 
 ## Why this exists
-AI coding tools often write polished but stylistically repetitive documentation. Em dashes are a common example, but they are really just one symptom of a larger problem: generated prose drifting away from repository norms.
 
-This project closes that loop with:
-- a deterministic rewrite engine
-- structured CLI output
-- Git hook integration
-- advisory phrase warnings
-- optional web UI for local/demo use
+AI coding tools often produce documentation that is useful, readable, and still slightly off-style. The drift is usually repetitive rather than deep: dash overuse, typewriter-era separators, stock transitions, and similar narrow artifacts.
+
+That is a good fit for deterministic cleanup because it is:
+- cheap to run
+- easy to audit
+- local to the repository
+- predictable enough for hooks and automation
 
 ## What it does today
-- rewrites U+2014 em dashes using context-aware heuristics
-- skips fenced code blocks
+
+- rewrites common punctuation artifacts using explainable heuristics
+- skips structured regions that should remain verbatim
 - supports files, directories, and zip archives
 - emits JSON reports for automation
 - provides a pre-commit dispatcher pattern with additive drop-in hooks
@@ -42,6 +67,11 @@ prose-hygiene docs/ /tmp/docs-clean --json
 prose-hygiene docs/ /tmp/docs-clean --json --normalize-heading-commas
 ```
 
+Examples:
+- `It works: but only after restart.` -> `It works, but only after restart.`
+- `Range 1–40 not allowed.` -> `Range 1-40 not allowed.`
+- `Bad use -- like this.` -> `Bad use, like this.`
+
 To skip a file entirely, add one of these markers near the top of the file:
 ```md
 prose-hygiene: ignore-file
@@ -49,13 +79,15 @@ prose-hygiene: ignore-file
 ```
 
 ## Git hook model
+
 - `hooks/pre-commit` runs all executable files in `hooks/pre-commit.d/`
 - `10-prose-hygiene` auto-fixes staged documentation files and re-stages them
 - `20-ai-word-scrub` warns on high-signal AI prose markers
 
-If a staged file also has unstaged working-tree edits, `10-prose-hygiene` now skips that file rather than overwrite local changes.
+If a staged file also has unstaged working-tree edits, `10-prose-hygiene` skips that file rather than overwrite local changes.
 
 ## Release posture
+
 The CLI and hook workflow are the primary polished surfaces.
 
 > `web.py` is currently **experimental** and should be treated as a local/demo interface until it receives deeper review.
